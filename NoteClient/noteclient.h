@@ -18,10 +18,12 @@ public:
 	QString parseFileName2YMBase(const QString &fileName);
 
 	Ui::NoteClientClass getUiClass() { return ui; }
+protected:
+	void NoteClient::closeEvent(QCloseEvent *event);
 
 	private slots:
 
-	void on_geneButton_clicked();
+	bool on_geneButton_clicked();
 	void on_selectFileButton_clicked();
 	void on_clearButton_clicked();
 	void setCodeButtonText(bool toggled);

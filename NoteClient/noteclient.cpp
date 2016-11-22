@@ -31,19 +31,19 @@ NoteClient::~NoteClient()
 
 }
 
-void NoteClient::on_geneButton_clicked() {
+bool NoteClient::on_geneButton_clicked() {
 
 	if (ui.titleLineEdit->text().isEmpty()) {
 		QMessageBox::warning(this, tr("NoteClient"), tr("Title cannot be empty !"));
-		return ;
+		return false;
 	}
 	if (ui.titleLineEdit->text().contains("/")) {
 		QMessageBox::warning(this, tr("NoteClient"), tr("Title cannot contain '/' !"));
-		return;
+		return false;
 	}
 	if (ui.contentTextEdit->toPlainText().isEmpty()) {
 		QMessageBox::warning(this, tr("NoteClient"), tr("Content cannot be empty !"));
-		return ;
+		return false;
 	}
 	
 	int r;
@@ -66,7 +66,7 @@ void NoteClient::on_geneButton_clicked() {
 			r = geneFile("[" + getCurrentDateTime() + "]--" + ui.titleLineEdit->text() + ".txt");
 		}
 		else
-			return ;
+			return false;
 	}
 	else {
 		r = geneFile("[" + getCurrentDateTime() + "]--" + ui.titleLineEdit->text() + ".txt");
@@ -75,9 +75,12 @@ void NoteClient::on_geneButton_clicked() {
 	if (r) {
 		QMessageBox::information(this, tr("NoteClient"), tr("Generate Succeed !"));
 		triggerStatus(tr("Generate Succeed !"));
+		return true;
 	}
-	else
+	else {
 		triggerStatus(tr("Generate Failed !"));
+		return false;
+	}
 
 }
 bool NoteClient::geneFile(const QString &fileName) {
@@ -142,20 +145,22 @@ bool NoteClient::readFile(const QString &fileName) {
 	return true;
 }
 void NoteClient::on_selectFileButton_clicked() {
-	QString initialName = NOTEFILE_PATH;
-	if (initialName.isEmpty())
-		initialName = QDir::homePath();
-	QString fileName =
-		QFileDialog::getOpenFileName(this, tr("Select File"),
-			initialName);
+	if (okToContinue()) {
+		QString initialName = NOTEFILE_PATH;
+		if (initialName.isEmpty())
+			initialName = QDir::homePath();
+		QString fileName =
+			QFileDialog::getOpenFileName(this, tr("Select File"),
+				initialName);
 
-	fileName = QDir::toNativeSeparators(fileName);
+		fileName = QDir::toNativeSeparators(fileName);
 
-	if (!fileName.isEmpty()) {
-		if(readFile(fileName))
-			triggerStatus(tr("ReadFile Succeed !"));
-		else
-			triggerStatus(tr("ReadFile Failed !"));
+		if (!fileName.isEmpty()) {
+			if (readFile(fileName))
+				triggerStatus(tr("ReadFile Succeed !"));
+			else
+				triggerStatus(tr("ReadFile Failed !"));
+		}
 	}
 }
 void NoteClient::on_clearButton_clicked() {
@@ -175,11 +180,13 @@ void NoteClient::setFont(int fontsize) {
 	ui.codeTextEdit->setFont(QFont("Timers", fontsize));
 }
 void NoteClient::clearTextEdit() {
-	ui.titleLineEdit->clear();
-	ui.contentTextEdit->clear();
-	ui.codeTextEdit->clear();
+	if (okToContinue()) {
+		ui.titleLineEdit->clear();
+		ui.contentTextEdit->clear();
+		ui.codeTextEdit->clear();
 
-	setCurrentFile("");
+		setCurrentFile("");
+	}
 }
 void NoteClient::setCurrentFile(const QString &fileName) {
 	curFile = fileName;
@@ -221,10 +228,29 @@ void NoteClient::setCodeButtonText(bool toggled) {
 		ui.codeButton->setText(tr("Showcode >>"));
 }
 bool NoteClient::okToContinue(){
+
+	if (isWindowModified()) {
+		int r = QMessageBox::warning(this, tr("NoteClient"), tr("The file has been modified.\n""Do you want to save changes?"),
+			QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+		if (r == QMessageBox::Yes) {
+			return on_geneButton_clicked();
+		}
+		else if (r == QMessageBox::Cancel) {
+			return false;
+		}
+	}
 	return true;
 }
 void NoteClient::noteModified() {
 	setWindowModified(true);
+}
+void NoteClient::closeEvent(QCloseEvent *event) {
+	if (okToContinue()) {
+		event->accept();
+	}
+	else {
+		event->ignore();
+	}
 }
 //void NoteClient::resizeEvent(QResizeEvent *) {
 //
